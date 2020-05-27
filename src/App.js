@@ -1,8 +1,12 @@
+/* eslint-disable no-unused-expressions */
 import React, { Component } from 'react';
-// import logo from './logo.svg';
 import './App.css';
+import './css.css';
+
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ReactTimeout from 'react-timeout'
+import { CountdownCircleTimer } from 'react-countdown-circle-timer'
 import {
   BrowserRouter as Router,
   Switch,
@@ -72,46 +76,129 @@ class Home extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-    email : [],
-     token : []
+    snaps: [],
     }
-  }
-  render() {     
+  } 
+  componentDidMount() {
+    axios.get("http://snapi.epitech.eu/snaps",{
+      headers: {
+        "token": cookies.get('token')
+      }
+    }).then((data) => {
+      this.setState({ snaps: data.data.data});
+    })
+  } 
+
+render() {
 	if (cookies.get('token')) {
     return(
       <div>
-        ici c'est la home {cookies.get('email')};
+        voici vos snaps recus, {cookies.get('email')};
+
+        {this.state.snaps.map((e) => {
+          return (
+            <Snaplist snap_id={e.snap_id} from={e.from} duration={e.duration} />
+         )
+       })}
 			</div>
 		)
   }
   else {
     window.location = "/login";
-
   }
-	} 
+ } 
+}
+
+class Popup extends React.Component {  
+  render() {
+      var req = new XMLHttpRequest();
+      req.responseType = "blob";
+      req.open("GET", "http://snapi.epitech.eu/snap/"+this.props.snap_id);
+      req.setRequestHeader('token', cookies.get('token'));
+      req.onload = response;
+      req.send();
+      function response(e) {
+        var urlCreator = window.URL || window.webkitURL;
+        var imageUrl = urlCreator.createObjectURL(this.response);
+        document.getElementById("snap").src = imageUrl;
+     }
+
+     var id = this.props.snap_id;
+     var time = this.props.duration * 1000;
+     
+    	if (cookies.get('token')) {
+        return(
+      <div id={"snap_container"+id} className="popup container-fluid m-0 p-0">
+      <img id="snap"  alt="snap"/>
+      <button id="close" className="butontop" onClick={this.props.closePopup}>close me</button>  
+      <div className="timer" id='timer'>
+      <CountdownCircleTimer
+      isPlaying
+      size={50}
+      duration={this.props.duration}
+      colors={[['#e69935']]}
+      >
+      {({ remainingTime }) => remainingTime}
+      </CountdownCircleTimer>
+      {
+     setTimeout(function(){ document.getElementById("snap_container"+id).style.visibility = "hidden" }, time)
+      }
+  </div>
+    			</div>
+    		)
+      }
+    }
+}  
+
+class Snaplist extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+    snaps: [],
+    showPopup: false 
+    }
+  }
+  togglePopup() {  
+    this.setState({  
+         showPopup: !this.state.showPopup  
+    });  
+    }  
+  render() {
+    return (
+    <div>
+      <button onClick={this.togglePopup.bind(this)}>  Snap de {this.props.from} <br/>dure: {this.props.duration}s</button>  
+      {this.state.showPopup ?  
+      <Popup    duration={this.props.duration} snap_id={this.props.snap_id} text='Click "Close Button" to hide popup'   closePopup={this.togglePopup.bind(this)}  />  
+      : null  
+      }  
+    </div>
+      )
+   } 
 }
 
 class Snap extends React.Component {
   handleSnap = (e) => {
    var image = this.refs.imageItem.value;
     image = image.replace(/C:\\fakepath\\/, '')
-console.log(image)
+
     e.preventDefault();
+  
      var data = {
          duration: this.refs.durationItem.value,
          to: this.refs.toItem.value,
-         image: image,
         }
+        const formData = new FormData();
+        formData.append('image',image);
       var url = 'http://snapi.epitech.eu/snap';
-      axios.post(url,data,{
+      axios.post(url,data, formData, {
         headers: {
-          // "Content-Type":"multipart/form-data",
+          "Content-Type": "multipart/form-data",
           "token": cookies.get('token')
         }
       })
        .then(function (response) {
         if (response.statusText === 'OK') {
-          window.location = "/hone";
+          window.location = "/home";
         }
         else {
           alert ("Impossible de créer votre compte, veillez réessayer")
@@ -119,11 +206,10 @@ console.log(image)
      })
        .catch(e=>console.log(e))
  }
-
  render() {
    return (
      <form onSubmit={this.handleSnap}  enctype="multipart/form-data">
-           <label htmlFor="snap[duration]">Duration:</label>
+           <label htmlFor="snap[duration]">Duraation:</label>
         <select ref="durationItem" name="images" id="durationItem">
             <option value="5">5</option>
             <option value="10">10</option>
@@ -137,31 +223,22 @@ console.log(image)
  }
 }
 
-  
-
-
 class Inscription extends React.Component {
   handleRegister = (e) => {
     e.preventDefault();
-     var data = {
-         email: this.refs.emailItem.value,
-         password: this.refs.passwordItem.value,
-             }
-      var url = 'http://snapi.epitech.eu/inscription';
-      console.log( this.refs.emailItem.value)
-      axios.post(url,data,{
-        headers: {
-          "Content-Type":"application/json",
+    var data = {
+        email: this.refs.emailItem.value,
+        password: this.refs.passwordItem.value,
         }
-      })
+     var url = "http://snapi.epitech.eu/inscription";
+     axios.post(url,data,{
+       headers: {
+         "Content-Type":"application/json",
+       }
+     })
       .then(function (response) {
-       if (response.statusText === 'OK') {
-      window.location = "/login";
-    }
-    else {
-      alert ("Impossible de créer votre compte, veillez réessayer")
-    }
-    })
+      })
+      .catch(e => console.log(e))
  }
  render() {
    if(cookies.get('token')){
@@ -187,12 +264,11 @@ class Login extends React.Component {
       var url = "http://snapi.epitech.eu/connection";
       axios.post(url,data,{
         headers: {
-          "Content-Type":"application/json",
+          "Content-Type":"application/json;",
         }
       })
         .then(function (response) {
            if (response.statusText === 'OK') {
-             console.log(response.data.data.token)
             cookies.set('email', response.data.data.email, { path: '/' });
             cookies.set('token', response.data.data.token, { path: '/' });
           window.location = "/home";
