@@ -2,10 +2,10 @@
 import React, { Component } from 'react';
 import './App.css';
 import './css.css';
-
+import CanvasDraw from "react-canvas-draw";
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import ReactTimeout from 'react-timeout'
+
 import { CountdownCircleTimer } from 'react-countdown-circle-timer'
 import {
   BrowserRouter as Router,
@@ -41,7 +41,9 @@ if (cookies.get('token')){
           <Route path="/inscription" component={Inscription} />
           <Route path="/logout" component={Logout} />
           <Route path="/Login" component={Login} />
-          <Route path="/snap" component={Snap} />
+          <Route path="/test" component={Test} />
+          <Route path="/snap/:handle" component={Snap} />
+          <Route path="/snap" component={CreateSnap} />
           <Route path="/" component={Home} />
         </Switch>
         </Router>
@@ -72,6 +74,18 @@ else {
   }
 }
 
+class Test extends React.Component {
+  render() {
+     return (
+      <CanvasDraw 
+       imgSrc="https://upload.wikimedia.org/wikipedia/commons/a/a1/Nepalese_Mhapuja_Mandala.jpg" 
+       brushRadius="3"
+       
+      /> 
+    )
+  }
+}
+
 class Home extends React.Component { 
   constructor(props) {
     super(props);
@@ -97,7 +111,7 @@ render() {
 
         {this.state.snaps.map((e) => {
           return (
-            <Snaplist snap_id={e.snap_id} from={e.from} duration={e.duration} />
+          <div> <a href={"http://localhost:3000/snap/"+e.snap_id} onClick={ cookies.set('duration', e.duration, { path: '/' })}>snap de {e.from} il dure {e.duration}s</a><br/></div>
          )
        })}
 			</div>
@@ -109,116 +123,99 @@ render() {
  } 
 }
 
-class Popup extends React.Component {  
-  render() {
-      var req = new XMLHttpRequest();
+class Snap extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+     showText: false
+    }
+   }
+   componentDidMount() {
+    console.log(cookies.get('duration'))
+    var time = cookies.get('duration') * 1000;
+    var data = {
+      id: this.props.match.params.handle,
+          }
+
+          console.log(this.props.id);
+   var url = "http://snapi.epitech.eu/seen";
+   axios.post(url,data,{
+     headers: {
+       "Content-Type":"application/json;",
+       "token": cookies.get('token')
+     }
+   })
+
+setTimeout(() => {
+      this.setState({ showText: true })
+    }, time)
+   }
+   render() {
+    const { showText } = this.state
+    var req = new XMLHttpRequest();
       req.responseType = "blob";
-      req.open("GET", "http://snapi.epitech.eu/snap/"+this.props.snap_id);
+      req.open("GET", "http://snapi.epitech.eu/snap/"+this.props.match.params.handle);
       req.setRequestHeader('token', cookies.get('token'));
       req.onload = response;
       req.send();
       function response(e) {
         var urlCreator = window.URL || window.webkitURL;
         var imageUrl = urlCreator.createObjectURL(this.response);
-        document.getElementById("snap").src = imageUrl;
-     }
-
-     var id = this.props.snap_id;
-     var time = this.props.duration * 1000;
-     
-    	if (cookies.get('token')) {
-        return(
-      <div id={"snap_container"+id} className="popup container-fluid m-0 p-0">
-      <img id="snap"  alt="snap"/>
-      <button id="close" className="butontop" onClick={this.props.closePopup}>close me</button>  
-      <div className="timer" id='timer'>
-      <CountdownCircleTimer
+        document.getElementById("snap").src = imageUrl; }
+    return (
+     <div className="popup container-fluid m-0 p-0"><img id="snap"  alt="snap"/>
+     <div className="timer" id='timer'>
+  <CountdownCircleTimer
       isPlaying
       size={50}
-      duration={this.props.duration}
+      duration={cookies.get('duration')}
       colors={[['#e69935']]}
       >
       {({ remainingTime }) => remainingTime}
-      </CountdownCircleTimer>
-      {
-     setTimeout(function(){ document.getElementById("snap_container"+id).style.visibility = "hidden" }, time)
-      }
-  </div>
-    			</div>
-    		)
-      }
-    }
-}  
-
-class Snaplist extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-    snaps: [],
-    showPopup: false 
-    }
-  }
-  togglePopup() {  
-    this.setState({  
-         showPopup: !this.state.showPopup  
-    });  
-    }  
-  render() {
-    return (
-    <div>
-      <button onClick={this.togglePopup.bind(this)}>  Snap de {this.props.from} <br/>dure: {this.props.duration}s</button>  
-      {this.state.showPopup ?  
-      <Popup    duration={this.props.duration} snap_id={this.props.snap_id} text='Click "Close Button" to hide popup'   closePopup={this.togglePopup.bind(this)}  />  
-      : null  
-      }  
-    </div>
-      )
-   } 
+      </CountdownCircleTimer></div>
+      {showText && <Seesnap id={this.props.match.params.handle}/>}
+     </div>
+    )
+   }
 }
 
-class Snap extends React.Component {
+class Seesnap extends React.Component {
+render() {
+  return (
+    window.location = "/home"
+    )
+}
+}
+
+class CreateSnap extends React.Component {
   handleSnap = (e) => {
    var image = this.refs.imageItem.value;
-    image = image.replace(/C:\\fakepath\\/, '')
-
     e.preventDefault();
-  
-     var data = {
-         duration: this.refs.durationItem.value,
-         to: this.refs.toItem.value,
-        }
         const formData = new FormData();
-        formData.append('image',image);
-      var url = 'http://snapi.epitech.eu/snap';
-      axios.post(url,data, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          "token": cookies.get('token')
-        }
-      })
-       .then(function (response) {
-        if (response.statusText === 'OK') {
-          window.location = "/home";
-        }
-        else {
-          alert ("Impossible de créer votre compte, veillez réessayer")
-        }
-     })
-       .catch(e=>console.log(e))
+        formData.append('image', this.refs.imageItem.files[0]);
+        formData.append('duration', this.refs.durationItem.value);
+        formData.append('to',this.refs.toItem.value);
+        console.log(formData);
+var request = new XMLHttpRequest();
+request.open("POST", "http://snapi.epitech.eu/snap");
+request.setRequestHeader('token', cookies.get('token'));
+request.send(formData);
+
+
  }
  render() {
    return (
-     <form onSubmit={this.handleSnap}  enctype="multipart/form-data">
-           <label htmlFor="snap[duration]">Duraation:</label>
-        <select ref="durationItem" name="images" id="durationItem">
+     <form onSubmit={this.handleSnap}  encType="multipart/form-data" name="files">
+           <label htmlFor="snap[duration]">Duration:</label>
+        <select ref="durationItem" name="duration" id="durationItem">
             <option value="5">5</option>
             <option value="10">10</option>
             <option value="15">15</option>
             <option value="20">20</option>
         </select><br/>
-           <label htmlFor="snap[to]">to</label><input type="email"  ref="toItem"/><br/>
+           <label htmlFor="snap[to]">to</label><input type="email" name="to"  ref="toItem"/><br/>
            <label htmlFor="snap[image]">to</label>
-           <input id="image"  ref="imageItem" type="file"  accept="image/*" capture="camera" /><br/>
+           <input id="image" name="image"  ref="imageItem" type="file"  accept="image/*" /><br/>
            <input type="submit" value="Submit"/></form>)
  }
 }
@@ -237,6 +234,8 @@ class Inscription extends React.Component {
        }
      })
       .then(function (response) {
+        window.location = "/login";
+
       })
       .catch(e => console.log(e))
  }
@@ -279,7 +278,6 @@ class Login extends React.Component {
         })
         .catch(e => console.log(e))
  }
-
  render() {
   if(cookies.get('token')){
     window.location = "/home";
@@ -291,7 +289,6 @@ class Login extends React.Component {
                <label htmlFor="login[password]">Password</label><input type="password" ref="passwordItem" name="login[password]"/><br/>
                <input type="submit" value="Submit"/></form>)}
  }
-
 }
 
 class Logout extends React.Component {
