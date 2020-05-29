@@ -2,8 +2,29 @@
     text-align: center;
 }
 
+.navbar .navbar-nav {
+    display: inline-block;
+    float: none;
+    vertical-align: top;
+    width: 100%;
+    padding: 0!important;
+    margin: 0!important;
+}
 
-.hidden {visibility: hidden;}
+.nav-item,
+.nav-link {
+    text-align: center;
+    background-color: #fffc00;
+    width: 100%;
+}
+
+.nav-link:hover {
+    background-color: #c3c000;
+}
+
+.hidden {
+    visibility: hidden;
+}
 
 html,
 body,

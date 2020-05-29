@@ -31,7 +31,7 @@ if (cookies.get('token')){
     return (
       <div className="App">
         <Router>
-        <nav className="navbar navbar-expand-lg navbar-light bg-light"> <div className="navbar-nav"> 
+        <nav className="navbar navbar-collapse navbar-expand-lg navbar-light bg-light m-0 p-0"> <div className="navbar-nav"> 
             <Link className="nav-item nav-link" to="/">Home</Link>
             <Link className="nav-item nav-link" to="/logout">Logout</Link>
             <Link className="nav-item nav-link" to="/snap">Send a snap</Link>
@@ -55,7 +55,7 @@ else {
   return (
     <div className="App">
       <Router>
-      <nav className="navbar navbar-expand-lg navbar-light bg-light"> <div className="navbar-nav"> 
+      <nav className="navbar navbar-expand-lg text-center navbar-light bg-light  m-0 p-0"> <div className="navbar-nav"> 
           <Link className="nav-item nav-link" to="/inscription">inscription</Link>
           <Link className="nav-item nav-link" to="/login">Login</Link>
         </div>
@@ -201,6 +201,8 @@ request.open("POST", "http://snapi.epitech.eu/snap");
 request.setRequestHeader('token', cookies.get('token'));
 request.send(formData);
 
+this.refs.imageItem.value = '';
+this.refs.toItem.value = ''
 
  }
  render() {
